@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { SectId, SectInfo, GameState, GamePhase, SectState, InteractionState, InteractionType, LogEntry, Point, LocationData, GameEvent, EventResult } from './types';
-import { SECTS, MAX_DAYS, GOAL_PROGRESS, SECT_ORDER, WEATHERS, FIXED_LOCATIONS } from './constants';
+import { SectId,  GameState, GamePhase, SectState, InteractionState,  Point, LocationData} from './types';
+import { SECTS, GOAL_PROGRESS, SECT_ORDER, WEATHERS, FIXED_LOCATIONS } from './constants';
 import * as GeminiService from './services/geminiService';
 
 // --- Helper Functions (Outside Component) ---
@@ -197,7 +197,7 @@ const App: React.FC = () => {
     const activeState = gameState.sectStates[activeSectId];
 
     if (activeState.skipNextTurn) {
-        commitTurn(activeSectId, activeState.locationProgress, activeState.currentLocationName, `【${SECTS[activeSectId].name}】受前事影响，本回合无法行动。`, true);
+        commitTurn(`【${SECTS[activeSectId].name}】受前事影响，本回合无法行动。`, true);
         return;
     }
 
@@ -325,11 +325,11 @@ const App: React.FC = () => {
           };
       });
       
-      commitTurn(activeSectId, finalProgress, finalLoc.name, logContent, applySkipTurn, applyActionAgain);
+      commitTurn(logContent,applyActionAgain);
       setInteraction(null);
   };
 
-  const commitTurn = (sectId: SectId, progress: number, locName: string, logContent: string, wasSkipped = false, actionAgain = false) => {
+  const commitTurn = (logContent: string, actionAgain = false) => {
       setGameState(prev => {
           let nextIndex = prev.activeSectIndex;
           let nextDay = prev.day;
@@ -597,7 +597,7 @@ const App: React.FC = () => {
     const activeSect = SECTS[activeSectId];
     const activeState = gameState.sectStates[activeSectId];
     const activePortrait = gameState.customSectPortraits?.[activeSectId];
-    const logsByDay = gameState.globalLog.reduce((acc, log) => { if (!acc[log.day]) acc[log.day] = []; acc[log.day].push(log); return acc; }, {} as Record<number, LogEntry[]>);
+    // const logsByDay = gameState.globalLog.reduce((acc, log) => { if (!acc[log.day]) acc[log.day] = []; acc[log.day].push(log); return acc; }, {} as Record<number, LogEntry[]>);
     const isDari = activeSectId === SectId.DARI;
     const titleClass = isDari ? 'text-amber-400' : activeSect.color;
     const titleShadow = isDari ? { textShadow: '0 0 10px #fbbf24, 0 0 20px #d97706' } : { textShadow: '0 0 10px currentColor' };
