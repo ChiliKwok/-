@@ -1,18 +1,18 @@
 
 import { SectState, LocationData, GameEvent } from "../types";
-import { SECTS, FIXED_LOCATIONS, WEATHERS } from "../constants";
+import { SECTS, FIXED_LOCATIONS} from "../constants";
 
 // Local Game Engine (Replaces AI)
 
-const getRandomWeather = () => WEATHERS[Math.floor(Math.random() * WEATHERS.length)];
+// const getRandomWeather = () => WEATHERS[Math.floor(Math.random() * WEATHERS.length)];
 
 // Format text with replacements
-const formatNarrative = (text: string, sectName: string, locationName: string, weather: string) => {
-    return text
-        .replace(/{Sect}/g, sectName)
-        .replace(/{Location}/g, locationName)
-        .replace(/{Weather}/g, weather);
-};
+// const formatNarrative = (text: string, sectName: string, locationName: string, weather: string) => {
+//     return text
+//         .replace(/{Sect}/g, sectName)
+//         .replace(/{Location}/g, locationName)
+//         .replace(/{Weather}/g, weather);
+// };
 
 // --- Turn Event (Narrative only) ---
 export const generateTurnEvent = async (
@@ -20,7 +20,7 @@ export const generateTurnEvent = async (
   location: LocationData, 
   day: number,
   weather: string,
-  inputValue: number
+  _inputValue: number
 ): Promise<{ locationName: string; eventText: string; effectSummary: string }> => {
     
     const sect = SECTS[sectState.id];
@@ -46,14 +46,14 @@ export const generateConflictNarrative = async (
     location: string,
     weather: string
 ): Promise<string> => {
-    const sectA = SECTS[sectAId as any];
-    const sectB = SECTS[sectBId as any];
+    const sectA = SECTS[sectAId as keyof typeof SECTS];
+    const sectB = SECTS[sectBId as keyof typeof SECTS];
     return `在【${location}】，${sectA.name}与${sectB.name}狭路相逢。${weather}中，双方对峙，互不相让。`;
 }
 
 // --- Opportunity Event (The Rulebook Lookup) ---
 export const generateOpportunityEvent = async (
-    sectState: SectState,
+    _sectState: SectState,
     location: LocationData, 
     weather: string
 ): Promise<{ title: string; description: string, eventData?: GameEvent }> => {
