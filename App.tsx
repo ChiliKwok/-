@@ -201,45 +201,51 @@ const handleTurnStart = async () => {
     const activeSectId = gameState.turnQueue[gameState.activeSectIndex];
     const activeState = gameState.sectStates[activeSectId];
 
-    // 1. 提前获取输入值，用于判断是否为 0
-    const inputValue = parseInt(dmInputValue) || 0;
-
-    // 2. 处理滞留逻辑：只有当输入为 0 时，才执行跳过并在下回合解除状态
-    if (activeState.skipNextTurn && inputValue === 0) {
+      // --- 修改开始：强制跳过逻辑 ---
+    // 只要处于滞留状态，无视输入步数，直接执行跳过逻辑
+    if (activeState.skipNextTurn) {
         setGameState(prev => {
-            // 计算下一轮次 (手动执行轮转逻辑)
+            // 1. 计算下一个轮次（逻辑与 commitTurn 保持一致）
             let nextIndex = prev.activeSectIndex + 1;
             let nextDay = prev.day;
             let nextWeather = prev.weather;
             let dayComplete = false;
 
+            // 如果超过队列长度，进入下一天
             if (nextIndex >= prev.turnQueue.length) {
                 nextIndex = 0;
                 nextDay += 1;
                 dayComplete = true;
-                nextWeather = getRandomWeather();
+                nextWeather = getRandomWeather(); // 需要确保 getRandomWeather 在作用域内可用
             }
 
+            // 2. 更新状态：切换索引 + 解除当前门派的滞留状态
             return {
                 ...prev,
                 day: nextDay,
                 weather: nextWeather,
-                activeSectIndex: nextIndex, // 切换到下一个人
+                activeSectIndex: nextIndex, // 👈 核心：切换到下一个人
                 isDayComplete: dayComplete,
                 sectStates: {
                     ...prev.sectStates,
                     [activeSectId]: {
                         ...prev.sectStates[activeSectId],
-                        skipNextTurn: false // <--- 关键：解除滞留状态
+                        skipNextTurn: false // 👈 核心：解除 Debuff
                     }
                 },
                 globalLog: [
-                    ...prev.globalLog, 
-                    { day: prev.day, type: 'move', content: `【${SECTS[activeSectId].name}】调息修整，本回合解除滞留状态。` }
+                    ...prev.globalLog,
+                    { 
+                        day: prev.day, 
+                        type: 'move', 
+                        content: `【${SECTS[activeSectId].name}】结束滞留状态，整顿完毕。` 
+                    }
                 ]
             };
         });
-        return; // 结束函数，不再执行移动逻辑
+        
+        // 3. 强制结束函数，不执行后续的 resolveCollisions
+        return; 
     }
 
     setLoading(true);
