@@ -196,10 +196,58 @@ const App: React.FC = () => {
     const activeSectId = gameState.turnQueue[gameState.activeSectIndex];
     const activeState = gameState.sectStates[activeSectId];
 
-    if (activeState.skipNextTurn) {
-        commitTurn(`【${SECTS[activeSectId].name}】受前事影响，本回合无法行动。`, true);
-        return;
+const handleTurnStart = async () => {
+    if (loading) return;
+    const activeSectId = gameState.turnQueue[gameState.activeSectIndex];
+    const activeState = gameState.sectStates[activeSectId];
+
+    // 1. 提前获取输入值，用于判断是否为 0
+    const inputValue = parseInt(dmInputValue) || 0;
+
+    // 2. 处理滞留逻辑：只有当输入为 0 时，才执行跳过并在下回合解除状态
+    if (activeState.skipNextTurn && inputValue === 0) {
+        setGameState(prev => {
+            // 计算下一轮次 (手动执行轮转逻辑)
+            let nextIndex = prev.activeSectIndex + 1;
+            let nextDay = prev.day;
+            let nextWeather = prev.weather;
+            let dayComplete = false;
+
+            if (nextIndex >= prev.turnQueue.length) {
+                nextIndex = 0;
+                nextDay += 1;
+                dayComplete = true;
+                nextWeather = getRandomWeather();
+            }
+
+            return {
+                ...prev,
+                day: nextDay,
+                weather: nextWeather,
+                activeSectIndex: nextIndex, // 切换到下一个人
+                isDayComplete: dayComplete,
+                sectStates: {
+                    ...prev.sectStates,
+                    [activeSectId]: {
+                        ...prev.sectStates[activeSectId],
+                        skipNextTurn: false // <--- 关键：解除滞留状态
+                    }
+                },
+                globalLog: [
+                    ...prev.globalLog, 
+                    { day: prev.day, type: 'move', content: `【${SECTS[activeSectId].name}】调息修整，本回合解除滞留状态。` }
+                ]
+            };
+        });
+        return; // 结束函数，不再执行移动逻辑
     }
+
+    setLoading(true);
+    // (inputValue 已经在上面定义了，这里直接使用)
+    const newProgress = Math.min(GOAL_PROGRESS, activeState.locationProgress + inputValue);
+    await resolveCollisions(activeSectId, newProgress);
+    setLoading(false);
+  };
 
     setLoading(true);
     const inputValue = parseInt(dmInputValue) || 0;
