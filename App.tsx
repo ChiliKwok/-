@@ -201,36 +201,33 @@ const handleTurnStart = async () => {
     const activeSectId = gameState.turnQueue[gameState.activeSectIndex];
     const activeState = gameState.sectStates[activeSectId];
 
-      // --- 修改开始：强制跳过逻辑 ---
-    // 只要处于滞留状态，无视输入步数，直接执行跳过逻辑
+    // --- 自动检测滞留逻辑 ---
+    // 如果当前门派被标记为滞留，直接执行跳过，不进行移动判定
     if (activeState.skipNextTurn) {
         setGameState(prev => {
-            // 1. 计算下一个轮次（逻辑与 commitTurn 保持一致）
             let nextIndex = prev.activeSectIndex + 1;
             let nextDay = prev.day;
             let nextWeather = prev.weather;
             let dayComplete = false;
 
-            // 如果超过队列长度，进入下一天
             if (nextIndex >= prev.turnQueue.length) {
                 nextIndex = 0;
                 nextDay += 1;
                 dayComplete = true;
-                nextWeather = getRandomWeather(); // 需要确保 getRandomWeather 在作用域内可用
+                nextWeather = getRandomWeather();
             }
 
-            // 2. 更新状态：切换索引 + 解除当前门派的滞留状态
             return {
                 ...prev,
                 day: nextDay,
                 weather: nextWeather,
-                activeSectIndex: nextIndex, // 👈 核心：切换到下一个人
+                activeSectIndex: nextIndex,
                 isDayComplete: dayComplete,
                 sectStates: {
                     ...prev.sectStates,
                     [activeSectId]: {
                         ...prev.sectStates[activeSectId],
-                        skipNextTurn: false // 👈 核心：解除 Debuff
+                        skipNextTurn: false // 解除滞留状态
                     }
                 },
                 globalLog: [
@@ -243,17 +240,21 @@ const handleTurnStart = async () => {
                 ]
             };
         });
-        
-        // 3. 强制结束函数，不执行后续的 resolveCollisions
         return; 
     }
-  
-  // --- 新增函数：强制跳过当前回合 ---
+
+    setLoading(true);
+    const inputValue = parseInt(dmInputValue) || 0;
+    const newProgress = Math.min(GOAL_PROGRESS, activeState.locationProgress + inputValue);
+    await resolveCollisions(activeSectId, newProgress);
+    setLoading(false);
+  };
+
+  // --- 新增：手动跳过按钮的逻辑 ---
   const handleSkipTurn = () => {
       setGameState(prev => {
           const activeSectId = prev.turnQueue[prev.activeSectIndex];
           
-          // 1. 计算下一轮次
           let nextIndex = prev.activeSectIndex + 1;
           let nextDay = prev.day;
           let nextWeather = prev.weather;
@@ -266,7 +267,6 @@ const handleTurnStart = async () => {
               nextWeather = getRandomWeather();
           }
 
-          // 2. 强制执行：切换下一个人 + 解除当前人的滞留状态
           return {
               ...prev,
               day: nextDay,
@@ -277,7 +277,7 @@ const handleTurnStart = async () => {
                   ...prev.sectStates,
                   [activeSectId]: {
                       ...prev.sectStates[activeSectId],
-                      skipNextTurn: false // <--- 强制解除滞留
+                      skipNextTurn: false // 强制解除滞留
                   }
               },
               globalLog: [
@@ -706,13 +706,14 @@ const handleTurnStart = async () => {
                  <div><div className={`text-3xl font-serif font-bold tracking-widest mb-2 ${titleClass}`} style={titleShadow}>{activeSect.name}</div><div className="flex justify-between items-center text-xs text-stone-500 font-serif border-b border-stone-800 pb-2"><span>{activeSect.title}</span><span className="text-gold">第 {gameState.day} 日</span></div></div>
                  <div className="w-full aspect-video bg-stone-900 rounded border border-stone-800 relative overflow-hidden shadow-inner group">{activePortrait ? <img src={activePortrait} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" /> : <div className="w-full h-full flex items-center justify-center text-stone-700 italic text-sm">暂无立绘</div>}<div className="absolute top-2 right-2 bg-black/60 px-2 py-1 rounded text-[10px] text-stone-300 border border-stone-700 backdrop-blur-md flex items-center gap-1"><span>🌤️</span> {gameState.weather.split(' - ')[0]}</div></div>
                  <div className="grid grid-cols-2 gap-3 bg-stone-900/50 p-3 rounded border border-stone-800"><StatInput label="🗡️ 武力" value={activeState.stats.martial} onChange={v=>handleStatEdit(activeSectId, 'martial', v)} /><StatInput label="📜 智谋" value={activeState.stats.strategy} onChange={v=>handleStatEdit(activeSectId, 'strategy', v)} /><StatInput label="💰 财富" value={activeState.stats.wealth} onChange={v=>handleStatEdit(activeSectId, 'wealth', v)} /><StatInput label="👑 威望" value={activeState.stats.prestige} onChange={v=>handleStatEdit(activeSectId, 'prestige', v)} /></div>
-                 <div className="bg-stone-900 p-4 rounded border border-stone-700 shadow-inner">
+      <div className="bg-stone-900 p-4 rounded border border-stone-700 shadow-inner">
     <div className="flex justify-between items-center mb-2">
         <label className="text-[10px] text-stone-500 uppercase tracking-widest">移动裁决</label>
         <span className="text-[10px] text-stone-600">单位：里</span>
     </div>
     <div className="flex gap-2 h-12">
-        <div className="relative w-20 shrink-0">
+        {/* 输入框：稍微缩小宽度，给新按钮腾出空间 */}
+        <div className="relative w-16 shrink-0">
             <input 
                 type="number" 
                 value={dmInputValue} 
@@ -720,6 +721,8 @@ const handleTurnStart = async () => {
                 className="w-full h-full bg-stone-950 border border-stone-600 text-gold text-2xl font-serif font-bold text-center rounded focus:border-gold focus:ring-1 focus:ring-gold/30 focus:outline-none transition-all"
             />
         </div>
+        
+        {/* 原有的行动按钮 */}
         <Button 
             onClick={handleTurnStart} 
             disabled={loading} 
@@ -727,6 +730,16 @@ const handleTurnStart = async () => {
             icon={loading ? <span className="animate-spin">⏳</span> : <span>🐎</span>}
         >
             {loading ? '行军中...' : '立即进军'}
+        </Button>
+
+        {/* --- 新增：跳过按钮 --- */}
+        <Button 
+            onClick={handleSkipTurn} 
+            variant="secondary" 
+            className="w-16 text-xs bg-stone-800 border-stone-600 text-stone-400 hover:text-white hover:bg-stone-700 flex-col gap-0 leading-none px-0"
+        >
+            <span>⏭</span>
+            <span className="scale-75">跳过</span>
         </Button>
     </div>
 </div>
