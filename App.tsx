@@ -191,18 +191,14 @@ const App: React.FC = () => {
       });
   };
 
+  // --- Logic Fix Start: Clean and Unified Action Handlers ---
+
   const handleTurnStart = async () => {
     if (loading) return;
     const activeSectId = gameState.turnQueue[gameState.activeSectIndex];
     const activeState = gameState.sectStates[activeSectId];
 
-const handleTurnStart = async () => {
-    if (loading) return;
-    const activeSectId = gameState.turnQueue[gameState.activeSectIndex];
-    const activeState = gameState.sectStates[activeSectId];
-
-    // --- 自动检测滞留逻辑 ---
-    // 如果当前门派被标记为滞留，直接执行跳过，不进行移动判定
+    // 1. 自动滞留处理逻辑
     if (activeState.skipNextTurn) {
         setGameState(prev => {
             let nextIndex = prev.activeSectIndex + 1;
@@ -243,6 +239,7 @@ const handleTurnStart = async () => {
         return; 
     }
 
+    // 2. 正常移动逻辑
     setLoading(true);
     const inputValue = parseInt(dmInputValue) || 0;
     const newProgress = Math.min(GOAL_PROGRESS, activeState.locationProgress + inputValue);
@@ -250,7 +247,7 @@ const handleTurnStart = async () => {
     setLoading(false);
   };
 
-  // --- 新增：手动跳过按钮的逻辑 ---
+  // 3. 手动跳过逻辑 (按钮触发)
   const handleSkipTurn = () => {
       setGameState(prev => {
           const activeSectId = prev.turnQueue[prev.activeSectIndex];
@@ -292,19 +289,7 @@ const handleTurnStart = async () => {
       });
   };
 
-    setLoading(true);
-    // (inputValue 已经在上面定义了，这里直接使用)
-    const newProgress = Math.min(GOAL_PROGRESS, activeState.locationProgress + inputValue);
-    await resolveCollisions(activeSectId, newProgress);
-    setLoading(false);
-  };
-
-    setLoading(true);
-    const inputValue = parseInt(dmInputValue) || 0;
-    const newProgress = Math.min(GOAL_PROGRESS, activeState.locationProgress + inputValue);
-    await resolveCollisions(activeSectId, newProgress);
-    setLoading(false);
-  };
+  // --- Logic Fix End ---
 
   const resolvePvP = (winnerId: SectId, type: 'BATTLE' | 'NEGOTIATE' | 'COOP') => {
       if (!interaction || !interaction.targetSectId) return;
@@ -706,43 +691,46 @@ const handleTurnStart = async () => {
                  <div><div className={`text-3xl font-serif font-bold tracking-widest mb-2 ${titleClass}`} style={titleShadow}>{activeSect.name}</div><div className="flex justify-between items-center text-xs text-stone-500 font-serif border-b border-stone-800 pb-2"><span>{activeSect.title}</span><span className="text-gold">第 {gameState.day} 日</span></div></div>
                  <div className="w-full aspect-video bg-stone-900 rounded border border-stone-800 relative overflow-hidden shadow-inner group">{activePortrait ? <img src={activePortrait} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" /> : <div className="w-full h-full flex items-center justify-center text-stone-700 italic text-sm">暂无立绘</div>}<div className="absolute top-2 right-2 bg-black/60 px-2 py-1 rounded text-[10px] text-stone-300 border border-stone-700 backdrop-blur-md flex items-center gap-1"><span>🌤️</span> {gameState.weather.split(' - ')[0]}</div></div>
                  <div className="grid grid-cols-2 gap-3 bg-stone-900/50 p-3 rounded border border-stone-800"><StatInput label="🗡️ 武力" value={activeState.stats.martial} onChange={v=>handleStatEdit(activeSectId, 'martial', v)} /><StatInput label="📜 智谋" value={activeState.stats.strategy} onChange={v=>handleStatEdit(activeSectId, 'strategy', v)} /><StatInput label="💰 财富" value={activeState.stats.wealth} onChange={v=>handleStatEdit(activeSectId, 'wealth', v)} /><StatInput label="👑 威望" value={activeState.stats.prestige} onChange={v=>handleStatEdit(activeSectId, 'prestige', v)} /></div>
-      <div className="bg-stone-900 p-4 rounded border border-stone-700 shadow-inner">
-    <div className="flex justify-between items-center mb-2">
-        <label className="text-[10px] text-stone-500 uppercase tracking-widest">移动裁决</label>
-        <span className="text-[10px] text-stone-600">单位：里</span>
-    </div>
-    <div className="flex gap-2 h-12">
-        {/* 输入框：稍微缩小宽度，给新按钮腾出空间 */}
-        <div className="relative w-16 shrink-0">
-            <input 
-                type="number" 
-                value={dmInputValue} 
-                onChange={e=>setDmInputValue(e.target.value)} 
-                className="w-full h-full bg-stone-950 border border-stone-600 text-gold text-2xl font-serif font-bold text-center rounded focus:border-gold focus:ring-1 focus:ring-gold/30 focus:outline-none transition-all"
-            />
-        </div>
-        
-        {/* 原有的行动按钮 */}
-        <Button 
-            onClick={handleTurnStart} 
-            disabled={loading} 
-            className="flex-1 text-base tracking-widest shadow-[0_4px_10px_rgba(0,0,0,0.3)] border-gold/50"
-            icon={loading ? <span className="animate-spin">⏳</span> : <span>🐎</span>}
-        >
-            {loading ? '行军中...' : '立即进军'}
-        </Button>
+                 
+                 {/* --- MOVEMENT CONTROL PANEL --- */}
+                 <div className="bg-stone-900 p-4 rounded border border-stone-700 shadow-inner">
+                    <div className="flex justify-between items-center mb-2">
+                        <label className="text-[10px] text-stone-500 uppercase tracking-widest">移动裁决</label>
+                        <span className="text-[10px] text-stone-600">单位：里</span>
+                    </div>
+                    <div className="flex gap-2 h-12">
+                        {/* 输入框：稍微缩小宽度，给新按钮腾出空间 */}
+                        <div className="relative w-16 shrink-0">
+                            <input 
+                                type="number" 
+                                value={dmInputValue} 
+                                onChange={e=>setDmInputValue(e.target.value)} 
+                                className="w-full h-full bg-stone-950 border border-stone-600 text-gold text-2xl font-serif font-bold text-center rounded focus:border-gold focus:ring-1 focus:ring-gold/30 focus:outline-none transition-all"
+                            />
+                        </div>
+                        
+                        {/* 原有的行动按钮 */}
+                        <Button 
+                            onClick={handleTurnStart} 
+                            disabled={loading} 
+                            className="flex-1 text-base tracking-widest shadow-[0_4px_10px_rgba(0,0,0,0.3)] border-gold/50"
+                            icon={loading ? <span className="animate-spin">⏳</span> : <span>🐎</span>}
+                        >
+                            {loading ? '行军中...' : '立即进军'}
+                        </Button>
 
-        {/* --- 新增：跳过按钮 --- */}
-        <Button 
-            onClick={handleSkipTurn} 
-            variant="secondary" 
-            className="w-16 text-xs bg-stone-800 border-stone-600 text-stone-400 hover:text-white hover:bg-stone-700 flex-col gap-0 leading-none px-0"
-        >
-            <span>⏭</span>
-            <span className="scale-75">跳过</span>
-        </Button>
-    </div>
-</div>
+                        {/* --- 新增：跳过按钮 --- */}
+                        <Button 
+                            onClick={handleSkipTurn} 
+                            variant="secondary" 
+                            className="w-16 text-xs bg-stone-800 border-stone-600 text-stone-400 hover:text-white hover:bg-stone-700 flex-col gap-0 leading-none px-0"
+                        >
+                            <span>⏭</span>
+                            <span className="scale-75">跳过</span>
+                        </Button>
+                    </div>
+                 </div>
+
                  <div className="mt-auto grid grid-cols-3 gap-2"><Button variant="secondary" onClick={handleSaveGame} className="text-xs py-1">💾 保存</Button><Button variant="secondary" onClick={handleLoadGameClick} className="text-xs py-1">📂 读取</Button><Button variant="ghost" onClick={handleMapUploadClick} className="text-xs py-1">🗺️ 地图</Button></div>
             </div>
             <div className="flex-1 p-8 overflow-y-auto bg-[#131110] relative custom-scrollbar">
