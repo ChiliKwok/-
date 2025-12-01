@@ -608,7 +608,30 @@ const App: React.FC = () => {
                  <div><div className={`text-3xl font-serif font-bold tracking-widest mb-2 ${titleClass}`} style={titleShadow}>{activeSect.name}</div><div className="flex justify-between items-center text-xs text-stone-500 font-serif border-b border-stone-800 pb-2"><span>{activeSect.title}</span><span className="text-gold">第 {gameState.day} 日</span></div></div>
                  <div className="w-full aspect-video bg-stone-900 rounded border border-stone-800 relative overflow-hidden shadow-inner group">{activePortrait ? <img src={activePortrait} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" /> : <div className="w-full h-full flex items-center justify-center text-stone-700 italic text-sm">暂无立绘</div>}<div className="absolute top-2 right-2 bg-black/60 px-2 py-1 rounded text-[10px] text-stone-300 border border-stone-700 backdrop-blur-md flex items-center gap-1"><span>🌤️</span> {gameState.weather.split(' - ')[0]}</div></div>
                  <div className="grid grid-cols-2 gap-3 bg-stone-900/50 p-3 rounded border border-stone-800"><StatInput label="🗡️ 武力" value={activeState.stats.martial} onChange={v=>handleStatEdit(activeSectId, 'martial', v)} /><StatInput label="📜 智谋" value={activeState.stats.strategy} onChange={v=>handleStatEdit(activeSectId, 'strategy', v)} /><StatInput label="💰 财富" value={activeState.stats.wealth} onChange={v=>handleStatEdit(activeSectId, 'wealth', v)} /><StatInput label="👑 威望" value={activeState.stats.prestige} onChange={v=>handleStatEdit(activeSectId, 'prestige', v)} /></div>
-                 <div className="bg-stone-900 p-4 rounded border border-stone-700 shadow-inner"><label className="text-[10px] text-stone-500 uppercase tracking-widest mb-2 block">移动裁决 (里)</label><div className="flex gap-3"><input type="number" value={dmInputValue} onChange={e=>setDmInputValue(e.target.value)} className="flex-1 bg-stone-900 border border-stone-600 text-gold text-2xl font-serif text-center rounded focus:border-gold focus:outline-none transition-all"/><Button onClick={handleTurnStart} disabled={loading} className="flex-1 text-sm">{loading ? '...' : '行动'}</Button></div></div>
+                 <div className="bg-stone-900 p-4 rounded border border-stone-700 shadow-inner">
+    <div className="flex justify-between items-center mb-2">
+        <label className="text-[10px] text-stone-500 uppercase tracking-widest">移动裁决</label>
+        <span className="text-[10px] text-stone-600">单位：里</span>
+    </div>
+    <div className="flex gap-2 h-12">
+        <div className="relative w-20 shrink-0">
+            <input 
+                type="number" 
+                value={dmInputValue} 
+                onChange={e=>setDmInputValue(e.target.value)} 
+                className="w-full h-full bg-stone-950 border border-stone-600 text-gold text-2xl font-serif font-bold text-center rounded focus:border-gold focus:ring-1 focus:ring-gold/30 focus:outline-none transition-all"
+            />
+        </div>
+        <Button 
+            onClick={handleTurnStart} 
+            disabled={loading} 
+            className="flex-1 text-base tracking-widest shadow-[0_4px_10px_rgba(0,0,0,0.3)] border-gold/50"
+            icon={loading ? <span className="animate-spin">⏳</span> : <span>🐎</span>}
+        >
+            {loading ? '行军中...' : '立即进军'}
+        </Button>
+    </div>
+</div>
                  <div className="mt-auto grid grid-cols-3 gap-2"><Button variant="secondary" onClick={handleSaveGame} className="text-xs py-1">💾 保存</Button><Button variant="secondary" onClick={handleLoadGameClick} className="text-xs py-1">📂 读取</Button><Button variant="ghost" onClick={handleMapUploadClick} className="text-xs py-1">🗺️ 地图</Button></div>
             </div>
             <div className="flex-1 p-8 overflow-y-auto bg-[#131110] relative custom-scrollbar">
