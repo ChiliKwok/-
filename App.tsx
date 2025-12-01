@@ -247,6 +247,50 @@ const handleTurnStart = async () => {
         // 3. 强制结束函数，不执行后续的 resolveCollisions
         return; 
     }
+  
+  // --- 新增函数：强制跳过当前回合 ---
+  const handleSkipTurn = () => {
+      setGameState(prev => {
+          const activeSectId = prev.turnQueue[prev.activeSectIndex];
+          
+          // 1. 计算下一轮次
+          let nextIndex = prev.activeSectIndex + 1;
+          let nextDay = prev.day;
+          let nextWeather = prev.weather;
+          let dayComplete = false;
+
+          if (nextIndex >= prev.turnQueue.length) {
+              nextIndex = 0;
+              nextDay += 1;
+              dayComplete = true;
+              nextWeather = getRandomWeather();
+          }
+
+          // 2. 强制执行：切换下一个人 + 解除当前人的滞留状态
+          return {
+              ...prev,
+              day: nextDay,
+              weather: nextWeather,
+              activeSectIndex: nextIndex,
+              isDayComplete: dayComplete,
+              sectStates: {
+                  ...prev.sectStates,
+                  [activeSectId]: {
+                      ...prev.sectStates[activeSectId],
+                      skipNextTurn: false // <--- 强制解除滞留
+                  }
+              },
+              globalLog: [
+                  ...prev.globalLog,
+                  { 
+                      day: prev.day, 
+                      type: 'move', 
+                      content: `【${SECTS[activeSectId].name}】跳过本回合（状态已重置）。` 
+                  }
+              ]
+          };
+      });
+  };
 
     setLoading(true);
     // (inputValue 已经在上面定义了，这里直接使用)
